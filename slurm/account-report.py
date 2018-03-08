@@ -168,7 +168,7 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
         user_report = os.linesep.join(
             USER_T.format(
                 username=username,
-                given_name=pwd.getpwnam(username).pw_gecos.split(',')[0],
+                given_name=given_name(username),
                 core_hours=core_hours,
             )
             for username, core_hours in sorted(user_info, key=lambda t: t[1], reverse=True)
@@ -181,7 +181,7 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
             core_hours=core_hours,
             median_wait_time=median_wait_time,
             median_runtime=median_runtime,
-            user_report=user_report,
+            user_report=user_report or "*No authorized users*",
         ))
 
     report.append(REPORT_FOOTER)
@@ -288,6 +288,13 @@ def median_timedelta (list_):
 
     else:
         return sorted_list[center]
+
+
+def given_name (username):
+    try:
+        return pwd.getpwnam(username).pw_gecos.split(',')[0]
+    except KeyError:
+        return "(unknown)"
 
 
 def exit_with_msg(err_msg, ex=None, exit_code=1):
