@@ -73,7 +73,7 @@ def main ():
     if args.batch:
         with open(args.batch, 'rb') as fp:
             reader = csv.reader(fp)
-            for address, clusters, accounts in reader:
+            for recipients, clusters, accounts in reader:
                 report = build_report(
                     clusters=args.clusters or clusters,
                     starttime=args.starttime,
@@ -81,7 +81,7 @@ def main ():
                     accounts=accounts.split(','),
                 )
                 send_email(
-                    args.email or address,
+                    [args.email] or recipients.split(','),
                     report,
                     starttime=args.starttime,
                     endtime=args.endtime,
@@ -95,8 +95,13 @@ def main ():
             accounts=args.accounts,
         )
         if args.email:
-            send_email(args.email, report, starttime=args.starttime,
-                       endtime=args.endtime, clusters=args.clusters)
+            send_email(
+                [args.email],
+                report,
+                starttime=args.starttime,
+                endtime=args.endtime,
+                clusters=args.clusters,
+            )
         else:
             print report
 
@@ -184,8 +189,8 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
     return (os.linesep * 3).join(report)
 
 
-def send_email (address, report, starttime, endtime, clusters):
-    logger.info('sending report to {}'.format(address))
+def send_email (recipients, report, starttime, endtime, clusters):
+    logger.info('sending report to {}'.format(', '.join(recipients)))
 
     msg = email.mime.text.MIMEText(report)
     msg['Subject'] = "Cluster account activity report: {starttime} to {endtime} for {clusters}".format(
@@ -195,10 +200,10 @@ def send_email (address, report, starttime, endtime, clusters):
     )
     msg['From'] = "slurm@rc.colorado.edu"
     msg['Reply-To'] = "rc-help@colorado.edu"
-    msg['To'] = address
+    msg['To'] = ', '.join(recipients)
 
     s = smtplib.SMTP('localhost')
-    s.sendmail(msg['From'], [msg['To']], msg.as_string())
+    s.sendmail(msg['From'], recipients, msg.as_string())
     s.quit()
 
 
