@@ -3,9 +3,11 @@
 
 import argparse
 import datetime
+import email.mime.text
 import logging
 import os
 import pwd
+import smtplib
 import subprocess
 
 
@@ -33,9 +35,6 @@ USER_T = "* {username:<10} {given_name} ({core_hours:,.0f})"
 
 REPORT_FOOTER = """Please contact rc-help@colorado.edu if you have any questions or
 concerns."""
-
-
-# subject: "Blanca Usage Report ${MONTH} ${Y}\" -S from=slurm@rc.colorado.edu -S replyto=rc-help@colorado.edu -b jonathon.anderson@colorado.edu ${EMAIL}"
 
 
 logger = logging.getLogger(__name__)
@@ -66,12 +65,31 @@ def main ():
         else:
             console_handler.setLevel(logging.WARNING)
 
-    print build_report(
+    report = build_report(
         clusters=args.clusters,
         starttime=args.starttime,
         endtime=args.endtime,
         accounts=args.accounts,
     )
+
+    if args.email:
+        send_email(args.email, report, starttime=args.starttime,
+                   endtime=args.endtime, clusters=args.clusters)
+    else:
+        print report
+
+
+def parser ():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--starttime', default=datetime.date.today().strftime('%Y-%m-%d'))
+    parser.add_argument('-e', '--endtime', default=datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+    parser.add_argument('-M', '--clusters')
+    parser.add_argument('--email')
+    parser.add_argument('accounts', nargs='*')
+    parser.add_argument('--quiet', action='store_true')
+    parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--debug', action='store_true')
+    return parser
 
 
 def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
@@ -133,17 +151,22 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
     return (os.linesep * 3).join(report)
 
 
-def parser ():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--starttime', default=datetime.date.today().strftime('%Y-%m-%d'))
-    parser.add_argument('-e', '--endtime', default=datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
-    parser.add_argument('-M', '--clusters')
-    parser.add_argument('--email')
-    parser.add_argument('accounts', nargs='*')
-    parser.add_argument('--quiet', action='store_true')
-    parser.add_argument('--verbose', action='store_true')
-    parser.add_argument('--debug', action='store_true')
-    return parser
+def send_email (address, report, starttime, endtime, clusters):
+    logger.info('sending report to {}'.format(address))
+
+    msg = email.mime.text.MIMEText(report)
+    msg['Subject'] = "Cluster account activity report: {starttime} to {endtime} for {clusters}".format(
+        starttime=starttime,
+        endtime=endtime,
+        clusters=clusters,
+    )
+    msg['From'] = "slurm@rc.colorado.edu"
+    msg['Reply-To'] = "rc-help@colorado.edu"
+    msg['To'] = address
+
+    s = smtplib.SMTP('localhost')
+    s.sendmail(msg['From'], [msg['To']], msg.as_string())
+    s.quit()
 
 
 def sacct (truncate=True, allocations=True, starttime=None,
