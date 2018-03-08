@@ -147,7 +147,9 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
             clusters=clusters,
         ))
 
-        core_hours = 1.0 * sum(record['CPUTimeRAW'] for record in records) / 60
+        core_seconds = 1.0 * sum(record['CPUTimeRAW'] for record in records)
+        core_minutes = core_seconds / 60
+        core_hours = core_minutes / 60
         median_wait_time = median_timedelta([record['Start'] - record['Submit'] for record in records if record['Submit'] is not None and record['Start'] is not None])
         median_runtime = median_timedelta([record['End'] - record['Start'] for record in records if record['Start'] is not None and record['End'] is not None])
 
