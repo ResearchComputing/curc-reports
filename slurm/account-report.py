@@ -147,9 +147,7 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
             clusters=clusters,
         ))
 
-        core_seconds = 1.0 * sum(record['CPUTimeRAW'] for record in records)
-        core_minutes = core_seconds / 60
-        core_hours = core_minutes / 60
+        core_hours = seconds_to_hours(sum(record['CPUTimeRAW'] for record in records))
         median_wait_time = median_timedelta([record['Start'] - record['Submit'] for record in records if record['Submit'] is not None and record['Start'] is not None])
         median_runtime = median_timedelta([record['End'] - record['Start'] for record in records if record['Start'] is not None and record['End'] is not None])
 
@@ -162,7 +160,7 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
         user_info = [
             (
                 user,
-                1.0 * sum(record['CPUTimeRAW'] for record in records if record['User'] == user) / 60,
+                seconds_to_hours(sum(record['CPUTimeRAW'] for record in records if record['User'] == user)),
             )
             for user in account_users
         ]
@@ -306,6 +304,10 @@ def exit_with_msg(err_msg, ex=None, exit_code=1):
         err_msg_ts = '{}'.format(err_msg)
     logger.critical(err_msg_ts)
     sys.exit(exit_code)
+
+
+def seconds_to_hours (seconds):
+    return 1.0 * seconds / 60 / 60
 
 
 if __name__ == '__main__':
