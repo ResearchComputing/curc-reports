@@ -81,7 +81,7 @@ def main ():
                     accounts=accounts.split(','),
                 )
                 send_email(
-                    [args.email] or recipients.split(','),
+                    args.email.split(',') or recipients.split(','),
                     report,
                     starttime=args.starttime,
                     endtime=args.endtime,
@@ -96,7 +96,7 @@ def main ():
         )
         if args.email:
             send_email(
-                [args.email],
+                args.email.split(','),
                 report,
                 starttime=args.starttime,
                 endtime=args.endtime,
