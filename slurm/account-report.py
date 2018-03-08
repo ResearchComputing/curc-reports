@@ -2,6 +2,7 @@
 
 
 import argparse
+import csv
 import datetime
 import email.mime.text
 import logging
@@ -9,6 +10,7 @@ import os
 import pwd
 import smtplib
 import subprocess
+import sys
 
 
 REPORT_HEADER = """This is an automated cluster account activity report.
@@ -65,18 +67,38 @@ def main ():
         else:
             console_handler.setLevel(logging.WARNING)
 
-    report = build_report(
-        clusters=args.clusters,
-        starttime=args.starttime,
-        endtime=args.endtime,
-        accounts=args.accounts,
-    )
+    if args.batch and args.accounts:
+        exit_with_msg('Cannot specify accounts when running in batch mode')
 
-    if args.email:
-        send_email(args.email, report, starttime=args.starttime,
-                   endtime=args.endtime, clusters=args.clusters)
+    if args.batch:
+        with open(args.batch, 'rb') as fp:
+            reader = csv.reader(fp)
+            for address, clusters, accounts in reader:
+                report = build_report(
+                    clusters=args.clusters or clusters,
+                    starttime=args.starttime,
+                    endtime=args.endtime,
+                    accounts=accounts.split(','),
+                )
+                send_email(
+                    args.email or address,
+                    report,
+                    starttime=args.starttime,
+                    endtime=args.endtime,
+                    clusters=args.clusters or clusters,
+                )
     else:
-        print report
+        report = build_report(
+            clusters=args.clusters,
+            starttime=args.starttime,
+            endtime=args.endtime,
+            accounts=args.accounts,
+        )
+        if args.email:
+            send_email(args.email, report, starttime=args.starttime,
+                       endtime=args.endtime, clusters=args.clusters)
+        else:
+            print report
 
 
 def parser ():
@@ -84,6 +106,7 @@ def parser ():
     parser.add_argument('-s', '--starttime', default=last_month().strftime('%Y-%m-%d'))
     parser.add_argument('-e', '--endtime', default=this_month().strftime('%Y-%m-%d'))
     parser.add_argument('-M', '--clusters')
+    parser.add_argument('--batch')
     parser.add_argument('--email')
     parser.add_argument('accounts', nargs='*')
     parser.add_argument('--quiet', action='store_true')
@@ -260,6 +283,15 @@ def median_timedelta (list_):
 
     else:
         return sorted_list[center]
+
+
+def exit_with_msg(err_msg, ex=None, exit_code=1):
+    if ex:
+        err_msg_ts = '{}\n{}'.format(err_msg, ex)
+    else:
+        err_msg_ts = '{}'.format(err_msg)
+    logger.critical(err_msg_ts)
+    sys.exit(exit_code)
 
 
 if __name__ == '__main__':
