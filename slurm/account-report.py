@@ -14,7 +14,7 @@ import subprocess
 REPORT_HEADER = """This is an automated cluster account activity report.
 
 Cluster(s): {clusters}
-Report period: {starttime} to {endtime}."""
+Report period: {starttime} to {endtime}"""
 
 
 REPORT_BODY = """## Account: {account}
@@ -30,7 +30,7 @@ number of core-hours used by each is listed in parentheses.
 {user_report}"""
 
 
-USER_T = "* {username:<10} {given_name} ({core_hours:,.0f})"
+USER_T = "* {username} - {given_name} ({core_hours:,.0f})"
 
 
 REPORT_FOOTER = """Please contact rc-help@colorado.edu if you have any questions or
@@ -81,8 +81,8 @@ def main ():
 
 def parser ():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--starttime', default=datetime.date.today().strftime('%Y-%m-%d'))
-    parser.add_argument('-e', '--endtime', default=datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
+    parser.add_argument('-s', '--starttime', default=last_month().strftime('%Y-%m-%d'))
+    parser.add_argument('-e', '--endtime', default=this_month().strftime('%Y-%m-%d'))
     parser.add_argument('-M', '--clusters')
     parser.add_argument('--email')
     parser.add_argument('accounts', nargs='*')
@@ -90,6 +90,16 @@ def parser ():
     parser.add_argument('--verbose', action='store_true')
     parser.add_argument('--debug', action='store_true')
     return parser
+
+
+def last_month ():
+    last_month = (this_month() - datetime.timedelta(days=1))
+    return datetime.date(year=last_month.year, month=last_month.month, day=1)
+
+
+def this_month ():
+    today = datetime.date.today()
+    return datetime.date(year=today.year, month=today.month, day=1)
 
 
 def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
