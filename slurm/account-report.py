@@ -21,8 +21,10 @@ Report period: {starttime} to {endtime}"""
 
 REPORT_BODY = """## Account: {account}
 
-Total number of jobs run: {jobs:,}
-Total core-hours used: {core_hours:,.0f} 
+Current share utilization: {share_usage:,.0%} (as of {current_time})
+
+Number of jobs run: {jobs:,}
+Core-hours used: {core_hours:,.0f}
 Median queue wait time: {median_wait_time}
 Median runtime: {median_runtime}
 
@@ -146,8 +148,16 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
             accounts=account,
             clusters=clusters,
         ))
+        share_info = [
+            record for record in sshare(
+                accounts=account,
+                clusters=clusters,
+            )
+            if not record['User']
+        ][0]
 
         core_hours = seconds_to_hours(sum(record['CPUTimeRAW'] for record in records))
+        share_usage = share_info['EffectvUsage'] / share_info['NormShares']
         median_wait_time = median_timedelta([record['Start'] - record['Submit'] for record in records if record['Submit'] is not None and record['Start'] is not None])
         median_runtime = median_timedelta([record['End'] - record['Start'] for record in records if record['Start'] is not None and record['End'] is not None])
 
@@ -179,6 +189,8 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
             account=account,
             jobs=len(records),
             core_hours=core_hours,
+            share_usage=share_usage,
+            current_time=datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
             median_wait_time=median_wait_time,
             median_runtime=median_runtime,
             user_report=user_report or "*No authorized users*",
@@ -247,6 +259,47 @@ def sacct (truncate=True, allocations=True, starttime=None,
                     record[date_field] = datetime.datetime.strptime(record[date_field], '%Y-%m-%dT%H:%M:%S')
                 except ValueError:
                     record[date_field] = None
+        yield record
+
+
+def sshare (accounts=None, clusters=None):
+    cmd = ['/usr/bin/sshare', '--parsable2', '--all']
+    if accounts:
+        cmd.extend(('--accounts', accounts))
+    if clusters:
+        cmd.extend(('--clusters', clusters))
+
+    logger.debug(' '.join(cmd))
+    sshare_p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = sshare_p.communicate()
+
+    if sshare_p.returncode != 0 or stderr:
+        raise Exception(stderr)
+
+    lines = [ # FIXME
+        line for line in stdout.splitlines()
+        if line.strip() and not line.startswith('CLUSTER: ')
+    ]
+
+    header = lines[0].rstrip().split('|')
+    for line in lines[1:]:
+        line = line.rstrip().split('|')
+        record = dict(zip(header, line))
+        for integer_field in ('RawShares', 'RawUsage'):
+            if integer_field in record:
+                try:
+                    record[integer_field] = int(record[integer_field])
+                except ValueError:
+                    pass
+        for float_field in ('NormShares', 'EffectvUsage', 'FairShare'):
+            if float_field in record:
+                try:
+                    record[float_field] = float(record[float_field])
+                except ValueError:
+                    pass
+        for none_field in ('User', ):
+            if none_field in record and not record[none_field]:
+                record[none_field] = None
         yield record
 
 
