@@ -19,25 +19,31 @@ Cluster(s): {clusters}
 Report period: {starttime} to {endtime}"""
 
 
-REPORT_BODY = """## Account: {account}
+ACCOUNT_HEADER = """
 
-Current share utilization: {share_usage:,.0%} (as of {current_time})
+## Account: {account}
+"""
 
-Number of jobs run: {jobs:,}
+ACCOUNT_SHARE = """Current share utilization: {share_usage:,.0%} (as of {current_time})
+"""
+
+ACCOUNT_BODY = """Number of jobs run: {jobs:,}
 Core-hours used: {core_hours:,.0f}
 Median queue wait time: {median_wait_time}
 Median runtime: {median_runtime}
+"""
 
-The following users are authorized to run jobs in {account}. The
+USER_HEADER = """The following users are authorized to run jobs in {account}. The
 number of core-hours used by each is listed in parentheses.
+"""
 
-{user_report}"""
+USER_LINE = "* {username} - {given_name} ({core_hours:,.0f})"
 
+NO_USERS = "*No authorized users*"
 
-USER_T = "* {username} - {given_name} ({core_hours:,.0f})"
+REPORT_FOOTER = """
 
-
-REPORT_FOOTER = """Please contact rc-help@colorado.edu if you have any questions or
+Please contact rc-help@colorado.edu if you have any questions or
 concerns."""
 
 
@@ -81,6 +87,7 @@ def main ():
                     starttime=args.starttime,
                     endtime=args.endtime,
                     accounts=accounts.split(','),
+                    fairshare=not args.no_fairshare,
                 )
                 send_email(
                     args.email.split(',') or recipients.split(','),
@@ -95,6 +102,7 @@ def main ():
             starttime=args.starttime,
             endtime=args.endtime,
             accounts=args.accounts,
+            fairshare=not args.no_fairshare,
         )
         if args.email:
             send_email(
@@ -115,6 +123,7 @@ def parser ():
     parser.add_argument('-M', '--clusters')
     parser.add_argument('--batch')
     parser.add_argument('--email')
+    parser.add_argument('--no-fairshare', action='store_true', default=False)
     parser.add_argument('accounts', nargs='*')
     parser.add_argument('--quiet', action='store_true')
     parser.add_argument('--verbose', action='store_true')
@@ -132,7 +141,7 @@ def this_month ():
     return datetime.date(year=today.year, month=today.month, day=1)
 
 
-def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
+def build_report (clusters=None, starttime=None, endtime=None, accounts=None, fairshare=True):
     report = []
     report.append(REPORT_HEADER.format(
         clusters=clusters or "unspecified",
@@ -148,16 +157,8 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
             accounts=account,
             clusters=clusters,
         ))
-        share_info = [
-            record for record in sshare(
-                accounts=account,
-                clusters=clusters,
-            )
-            if not record['User']
-        ][0]
 
         core_hours = seconds_to_hours(sum(record['CPUTimeRAW'] for record in records))
-        share_usage = share_info['EffectvUsage'] / share_info['NormShares']
         median_wait_time = median_timedelta([record['Start'] - record['Submit'] for record in records if record['Submit'] is not None and record['Start'] is not None])
         median_runtime = median_timedelta([record['End'] - record['Start'] for record in records if record['Start'] is not None and record['End'] is not None])
 
@@ -175,30 +176,52 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None):
             for user in account_users
         ]
 
-        user_report = os.linesep.join(
-            USER_T.format(
+        report.append(ACCOUNT_HEADER.format(
+            account=account,
+        ))
+
+        if fairshare:
+            share_info = [
+                record for record in sshare(
+                    accounts=account,
+                    clusters=clusters,
+                )
+                if not record['User']
+            ][0]
+            share_usage = share_info['EffectvUsage'] / share_info['NormShares']
+            report.append(ACCOUNT_SHARE.format(
+                share_usage=share_usage,
+                current_time=datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
+            ))
+
+        report.append(ACCOUNT_BODY.format(
+            jobs=len(records),
+            core_hours=core_hours,
+            median_wait_time=median_wait_time,
+            median_runtime=median_runtime,
+        ))
+
+        report.append(USER_HEADER.format(
+            account=account,
+        ))
+
+        user_lines = [
+            USER_LINE.format(
                 username=username,
                 given_name=given_name(username),
                 core_hours=core_hours,
             )
             for username, core_hours in sorted(user_info, key=lambda t: t[1], reverse=True)
-        )
+        ]
 
-
-        report.append(REPORT_BODY.format(
-            account=account,
-            jobs=len(records),
-            core_hours=core_hours,
-            share_usage=share_usage,
-            current_time=datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
-            median_wait_time=median_wait_time,
-            median_runtime=median_runtime,
-            user_report=user_report or "*No authorized users*",
-        ))
+        if user_lines:
+            report.extend(user_lines)
+        else:
+            report.append(NO_USERS)
 
     report.append(REPORT_FOOTER)
 
-    return (os.linesep * 3).join(report)
+    return os.linesep.join(report)
 
 
 def send_email (recipients, report, starttime, endtime, clusters):
