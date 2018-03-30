@@ -6,6 +6,8 @@ Automated and random-access reports for RC services
 * `/curc/slurm/blanca/scripts/pi_reports.sh` (in `slurm3` crontab)
 * `/gpfs/archive01/custreport.sh` (in `petatsm01` crontab)
 * `/gpfs/archive01/capacityreport.sh` (in `petatsm01` crontab)
+* `/gpfs/gpfs01/custreport.sh` (in `gs01` crontab)
+* `/gpfs/gpfs01/capacityreport.sh` (in `gs01` crontab)
 
 
 ## Blanca
@@ -26,7 +28,9 @@ Automated and random-access reports for RC services
 
 ## PetaLibrary
 
-* `capacityreport.sh`
-* `custreport.sh`
+* `capacityreport-active.sh`
+* `custreport-active.sh`
+* `capacityreport-archive.sh`
+* `custreport-archive.sh`
 * `tape.quota`
 * `user.email`
