@@ -51,6 +51,22 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+def parser ():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--starttime', default=last_month().strftime('%Y-%m-%d'))
+    parser.add_argument('-e', '--endtime', default=this_month().strftime('%Y-%m-%d'))
+    parser.add_argument('-M', '--clusters')
+    parser.add_argument('--batch')
+    parser.add_argument('--email')
+    parser.add_argument('accounts', nargs='*')
+    parser.add_argument('--no-fairshare', action='store_true', default=False)
+    parser.add_argument('--quiet', action='store_true', default=False)
+    parser.add_argument('--verbose', action='store_true', default=False)
+    parser.add_argument('--debug', action='store_true', default=False)
+    parser.add_argument('--noop', action='store_true', default=False)
+    return parser
+
+
 def main ():
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(
@@ -95,6 +111,7 @@ def main ():
                     starttime=args.starttime,
                     endtime=args.endtime,
                     clusters=args.clusters or clusters,
+                    noop=args.noop,
                 )
     else:
         report = build_report(
@@ -111,24 +128,10 @@ def main ():
                 starttime=args.starttime,
                 endtime=args.endtime,
                 clusters=args.clusters,
+                noop=args.noop,
             )
         else:
             print report
-
-
-def parser ():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--starttime', default=last_month().strftime('%Y-%m-%d'))
-    parser.add_argument('-e', '--endtime', default=this_month().strftime('%Y-%m-%d'))
-    parser.add_argument('-M', '--clusters')
-    parser.add_argument('--batch')
-    parser.add_argument('--email')
-    parser.add_argument('--no-fairshare', action='store_true', default=False)
-    parser.add_argument('accounts', nargs='*')
-    parser.add_argument('--quiet', action='store_true')
-    parser.add_argument('--verbose', action='store_true')
-    parser.add_argument('--debug', action='store_true')
-    return parser
 
 
 def last_month ():
@@ -224,7 +227,7 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None, fa
     return os.linesep.join(report)
 
 
-def send_email (recipients, report, starttime, endtime, clusters):
+def send_email (recipients, report, starttime, endtime, clusters, noop=False):
     logger.info('sending report to {}'.format(', '.join(recipients)))
 
     msg = email.mime.text.MIMEText(report)
@@ -237,9 +240,10 @@ def send_email (recipients, report, starttime, endtime, clusters):
     msg['Reply-To'] = "rc-help@colorado.edu"
     msg['To'] = ', '.join(recipients)
 
-    s = smtplib.SMTP('localhost')
-    s.sendmail(msg['From'], recipients, msg.as_string())
-    s.quit()
+    if not noop:
+        s = smtplib.SMTP('localhost')
+        s.sendmail(msg['From'], recipients, msg.as_string())
+        s.quit()
 
 
 def sacct (truncate=True, allocations=True, starttime=None,
