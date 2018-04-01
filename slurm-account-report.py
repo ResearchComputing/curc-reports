@@ -15,6 +15,9 @@ import sys
 
 REPORT_HEADER = """This is an automated cluster account activity report.
 
+This report has recently been rewritten. Please share your feedback
+with rc-help@colorado.edu.
+
 Cluster(s): {clusters}
 Report period: {starttime} to {endtime}"""
 
