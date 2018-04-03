@@ -101,6 +101,10 @@ def main ():
         with open(args.batch, 'rb') as fp:
             reader = csv.reader(fp)
             for recipients, clusters, accounts in reader:
+                if args.email:
+                    recipients_ = args.email.split(',')
+                else:
+                    recipients_ = recipients.split(',')
                 report = build_report(
                     clusters=args.clusters or clusters,
                     starttime=args.starttime,
@@ -109,7 +113,7 @@ def main ():
                     fairshare=not args.no_fairshare,
                 )
                 send_email(
-                    args.email.split(',') or recipients.split(','),
+                    recipients_,
                     report,
                     starttime=args.starttime,
                     endtime=args.endtime,
