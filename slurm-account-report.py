@@ -55,18 +55,18 @@ logger.setLevel(logging.DEBUG)
 
 
 def parser ():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-s', '--starttime', default=last_month().strftime('%Y-%m-%d'))
-    parser.add_argument('-e', '--endtime', default=this_month().strftime('%Y-%m-%d'))
-    parser.add_argument('-M', '--clusters')
-    parser.add_argument('--batch')
-    parser.add_argument('--email')
-    parser.add_argument('accounts', nargs='*')
-    parser.add_argument('--no-fairshare', action='store_true', default=False)
-    parser.add_argument('--quiet', action='store_true', default=False)
-    parser.add_argument('--verbose', action='store_true', default=False)
-    parser.add_argument('--debug', action='store_true', default=False)
-    parser.add_argument('--noop', action='store_true', default=False)
+    parser = argparse.ArgumentParser(description="Generate activity reports for Slurm accounts.")
+    parser.add_argument('accounts', nargs='*', help="List of slurm accounts to include in report")
+    parser.add_argument('-s', '--starttime', metavar='TIME_STRING', default=last_month().strftime('%Y-%m-%d'), help="Reporting period start time as Slurm TIME_STRING. Default: the start of the previous month.")
+    parser.add_argument('-e', '--endtime', metavar='TIME_STRING', default=this_month().strftime('%Y-%m-%d'), help="Reporting period end time as Slurm TIME_STRING. Default: the start of the current month.")
+    parser.add_argument('-M', '--clusters', help="Comma-separated list of clusters to include in report")
+    parser.add_argument('--email', metavar="ADDRESS", help="Send report to ADDRESS")
+    parser.add_argument('--batch', metavar="CSV", help="Read accounts, clusters, and email addresses from CSV")
+    parser.add_argument('--no-fairshare', action='store_true', default=False, help="Do not include fairshare information in report")
+    parser.add_argument('--quiet', action='store_true', default=False, help="Suppress logging of non-critical events to console")
+    parser.add_argument('--verbose', action='store_true', default=False, help="Log informational events to console")
+    parser.add_argument('--debug', action='store_true', default=False, help="Log debug events to console")
+    parser.add_argument('--noop', action='store_true', default=False, help="Do not send reports via email, even when email addresses are provided")
     return parser
 
 
