@@ -25,5 +25,7 @@ FREESPACE=$(beegfs-df -s $(beegfs-ctl --liststoragepools |grep $1 |awk '{ print 
 PCTFREE=$(echo "a=$FREESPACE/$TOTSPACE ; scale=1; a/0.01" | bc -l)
 
 #report to user
+echo ""
 echo "Total_Space  |  Free_Space  |  %_Free_Space"
 echo ${TOTSPACE} "GiB  | " ${FREESPACE} "GiB  |  " ${PCTFREE}\%
+echo ""
