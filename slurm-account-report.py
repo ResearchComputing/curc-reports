@@ -37,7 +37,7 @@ USER_HEADER = """The following users are authorized to run jobs in {account}. Th
 number of core-hours used by each is listed in parentheses.
 """
 
-USER_LINE = "* {username} - {given_name} ({core_hours:,.0f})"
+USER_LINE = "* {username} - {given_name} [ {jobs} jobs | {core_hours:,.0f} core-hours ]"
 
 NO_USERS = "*No authorized users*"
 
@@ -179,6 +179,7 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None, fa
             (
                 user,
                 seconds_to_hours(sum(record['CPUTimeRAW'] for record in records if record['User'] == user)),
+                sum(1 for record in records if record['User'] == user),
             )
             for user in account_users
         ]
@@ -216,9 +217,10 @@ def build_report (clusters=None, starttime=None, endtime=None, accounts=None, fa
             USER_LINE.format(
                 username=username,
                 given_name=given_name(username),
+                jobs=jobs,
                 core_hours=core_hours,
             )
-            for username, core_hours in sorted(user_info, key=lambda t: t[1], reverse=True)
+            for username, core_hours, jobs in sorted(user_info, key=lambda t: t[1], reverse=True)
         ]
 
         if user_lines:
