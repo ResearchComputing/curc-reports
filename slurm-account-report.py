@@ -242,7 +242,7 @@ def send_email (recipients, report, starttime, endtime, clusters, noop=False):
         endtime=endtime,
         clusters=clusters,
     )
-    msg['From'] = "slurm@rc.colorado.edu"
+    msg['From'] = "slurm@colorado.edu"
     msg['Reply-To'] = "rc-help@colorado.edu"
     msg['To'] = ', '.join(recipients)
 
