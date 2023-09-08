@@ -46,19 +46,19 @@ optional arguments:
 ### Report for a single account
 
 ```
-python slurm-account-report.py --clusters=summit rc-ops
+python slurm-account-report.py --clusters=blanca blanca-curc
 ```
 
 ### Report for multiple accounts
 
 ```
-python slurm-account-report.py --clusters=summit rc-ops admin
+python slurm-account-report.py --clusters=blanca blanca-curc blanca-curc-gpu
 ```
 
 ### Report for a different time period
 
 ```
-python slurm-account-report.py --clusters=summit --starttime=2018-01-01 --endtime=2018-02-01 admin
+python slurm-account-report.py --clusters=blanca --starttime=2018-01-01 --endtime=2018-02-01 blanca-curc-gpu
 ```
 
 Note that fairshare data always reflects the time the report was
@@ -66,5 +66,5 @@ generated, and is not affected by the specified reporting period. You
 may want to omit fairshare data from such reports.
 
 ```
-python slurm-account-report.py --clusters=summit --starttime=2018-01-01 --endtime=2018-02-01 --no-fairshare admin
+python slurm-account-report.py --clusters=blanca --starttime=2018-01-01 --endtime=2018-02-01 --no-fairshare curc-gpu
 ```
